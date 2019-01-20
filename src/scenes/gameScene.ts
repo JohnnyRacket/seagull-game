@@ -1,9 +1,10 @@
+import { Bird } from "../objects/player";
+import { Cloud } from "../objects/cloud";
+import { Physics } from "phaser";
+
 export class GameScene extends Phaser.Scene {
-  private player: Phaser.Physics.Arcade.Sprite;
-  private platforms;
-  private cursors;
-  private spacebar;
-  private poopCooldown = 3;
+  private player: Bird;
+  private clouds: Physics.Arcade.Group;
 
   constructor() {
     super({
@@ -16,72 +17,49 @@ export class GameScene extends Phaser.Scene {
     this.load.image("cloud", "assets/cloud_emoji.png");
     this.load.image("logo", "assets/logo.png");
     this.load.image("birdpoop", "assets/poop_emoji.png");
-    this.load.image("seagull", "assets/bird_emoji.png");
+    this.load.image("bird", "assets/bird_emoji.png");
   }
 
   create() {
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.spacebar = this.input.keyboard.addKey("SPACE");
     this.add.image(0, 0, "sky").setOrigin(0, 0);
 
-    // this.platforms = this.physics.add.group();
-    // this.platforms
-    //   .create(400, 568, "cloud")
-    //   .setSize(140, 94)
-    //   .setVelocityX(50);
-    let cloud = this.physics.add.sprite(600, 400, "cloud").setSize(140, 94);
-    cloud.setImmovable(true).setVelocityX(10);
-    console.log("hi");
-    //this.platforms.add(cloud);
-    //this.platforms.create(50, 250, "cloud").setSize(140, 94);
-    //this.platforms.create(750, 220, "cloud").setSize(140, 94);
-
-    this.player = this.physics.add
-      .sprite(300, 450, "seagull")
-      .setOrigin(0.5)
-      .setScale(0.5);
-
-    this.player.setBounce(1);
-    this.player.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player, cloud);
-
-    // this.anims.create({
-    //   key: "right",
-    //   frames: this.anims.generateFrameNumbers("seagull", { start: 0, end: 6 }),
-    //   frameRate: 10,
-    //   repeat: -1
-    // });
-
-    // this.anims.create({
-    //   key: "left",
-    //   frames: this.anims.generateFrameNumbers("seagull", { start: 7, end: 13 }),
-    //   frameRate: 10,
-    //   repeat: -1
-    // });
+    this.clouds = this.physics.add.group();
+    this.player = new Bird({ x: 300, y: 300, key: "bird", scene: this });
+    this.physics.add.collider(this.player, this.clouds);
   }
 
   update() {
-    if (this.cursors.left.isDown) {
-      this.player.setVelocityX(-250);
-    } else if (this.cursors.right.isDown) {
-      this.player.setVelocityX(250);
-    }
-
-    if (this.cursors.up.isDown) {
-      this.player.setVelocityY(-100);
-    }
-
-    if (this.spacebar.isDown) {
-      var poop = this.physics.add
-        .sprite(this.player.x, this.player.y, "birdpoop")
-        .setScale(0.2);
-      poop.setVelocityY(300);
-    }
-
-    if (this.player.body.velocity.x > 0) this.player.flipX = true;
-    // scaleX = -1;
-    else this.player.flipX = false;
+    this.player.update();
+    this.randomlyCreateClouds();
+    this.cullClouds();
   }
 
   render() {}
+
+  cullClouds() {
+    this.clouds.getChildren().forEach(cloud => {
+      if (cloud.body.x > 800) {
+        this.clouds.killAndHide(cloud);
+        cloud.destroy();
+      }
+    });
+  }
+
+  randomlyCreateClouds() {
+    let rng = Math.random() * 10000;
+    if (rng > 9990) {
+      let cloud = new Cloud({
+        x: 0,
+        y: Math.random() * 600,
+        key: "cloud",
+        scene: this,
+        velocityX: Math.random() * 25
+      });
+
+      this.clouds.add(cloud);
+      cloud.setScale(Math.random());
+      cloud.body.immovable = true;
+      cloud.body.velocity.x = Math.random() * 35 + 5;
+    }
+  }
 }
